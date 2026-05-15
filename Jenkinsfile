@@ -12,7 +12,6 @@ pipeline {
     }
 
     stages {
-
         stage('Checkout') {
             steps {
                 git branch: 'main',
@@ -46,12 +45,12 @@ pipeline {
         stage('Push to Nexus') {
             steps {
                 nexusArtifactUploader(
-                    nexusVersion: 'nexus3',
-                    protocol:     'http',
-                    nexusUrl:     "${NEXUS_IP}:8081",
-                    groupId:      'com.demo',
-                    version:      '1.0.0',
-                    repository:   'maven-releases',
+                    nexusVersion:  'nexus3',
+                    protocol:      'http',
+                    nexusUrl:      "${NEXUS_IP}:8081",
+                    groupId:       'com.demo',
+                    version:       '1.0.0',
+                    repository:    'maven-releases',
                     credentialsId: 'nexus-credentials',
                     artifacts: [
                         [
@@ -69,20 +68,18 @@ pipeline {
             steps {
                 sshagent(['ec2-ssh-key']) {
                     sh """
-                        scp -o StrictHostKeyChecking=no \\
-                            target/demo-app-1.0.0.jar \\
-                            ubuntu@${DEPLOY_IP}:/home/ubuntu/
+                        scp -o StrictHostKeyChecking=no target/demo-app-1.0.0.jar ubuntu@${DEPLOY_IP}:/home/ubuntu/
 
-                        ssh -o StrictHostKeyChecking=no ubuntu@${DEPLOY_IP} '
+                        ssh -o StrictHostKeyChecking=no ubuntu@${DEPLOY_IP} "bash -s" << 'ENDSSH'
                             pkill -f demo-app-1.0.0.jar || true
-                            nohup java -jar /home/ubuntu/demo-app-1.0.0.jar \
-                                > /home/ubuntu/app.log 2>&1 &
-                        '
+                            sleep 2
+                            nohup java -jar /home/ubuntu/demo-app-1.0.0.jar > /home/ubuntu/app.log 2>&1 &
+                            echo "App started"
+ENDSSH
                     """
                 }
             }
         }
-
     }
 
     post {
