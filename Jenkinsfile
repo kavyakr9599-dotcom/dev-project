@@ -7,7 +7,7 @@ pipeline {
     }
 
     environment {
-        NEXUS_IP = '35.170.57.220'
+        NEXUS_IP  = '35.170.57.220'
         DEPLOY_IP = '3.91.3.65'
     }
 
@@ -47,18 +47,18 @@ pipeline {
             steps {
                 nexusArtifactUploader(
                     nexusVersion: 'nexus3',
-                    protocol: 'http',
-                    nexusUrl: "${NEXUS_IP}:8081",
-                    groupId: 'com.demo',
-                    version: '1.0.0',
-                    repository: 'maven-releases',
+                    protocol:     'http',
+                    nexusUrl:     "${NEXUS_IP}:8081",
+                    groupId:      'com.demo',
+                    version:      '1.0.0',
+                    repository:   'maven-releases',
                     credentialsId: 'nexus-credentials',
                     artifacts: [
                         [
                             artifactId: 'demo-app',
                             classifier: '',
-                            file: 'target/demo-app-1.0.0.jar',
-                            type: 'jar'
+                            file:       'target/demo-app-1.0.0.jar',
+                            type:       'jar'
                         ]
                     ]
                 )
@@ -69,23 +69,26 @@ pipeline {
             steps {
                 sshagent(['ec2-ssh-key']) {
                     sh """
-                    scp -o StrictHostKeyChecking=no target/demo-app-1.0.0.jar ubuntu@${DEPLOY_IP}:/home/ubuntu/
+                        scp -o StrictHostKeyChecking=no \\
+                            target/demo-app-1.0.0.jar \\
+                            ubuntu@${DEPLOY_IP}:/home/ubuntu/
 
-                    ssh -o StrictHostKeyChecking=no ubuntu@${DEPLOY_IP} << EOF
-                    pkill -f 'demo-app-1.0.0.jar' || true
-                    nohup java -jar /home/ubuntu/demo-app.jar > app.log 2>&1 &
-                    EOF
+                        ssh -o StrictHostKeyChecking=no ubuntu@${DEPLOY_IP} '
+                            pkill -f demo-app-1.0.0.jar || true
+                            nohup java -jar /home/ubuntu/demo-app-1.0.0.jar \
+                                > /home/ubuntu/app.log 2>&1 &
+                        '
                     """
                 }
             }
         }
+
     }
 
     post {
         success {
             echo 'Pipeline executed successfully!'
         }
-
         failure {
             echo 'Pipeline failed!'
         }
