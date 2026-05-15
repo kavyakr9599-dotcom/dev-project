@@ -7,7 +7,7 @@ pipeline {
     }
 
     environment {
-        NEXUS_IP = '44.204.255.105'
+        NEXUS_IP = '35.170.57.220'
         DEPLOY_IP = '3.91.3.65'
     }
 
