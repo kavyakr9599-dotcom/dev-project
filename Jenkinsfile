@@ -7,8 +7,8 @@ pipeline {
     }
 
     environment {
-        NEXUS_IP  = '35.170.57.220'
-        DEPLOY_IP = '3.91.3.65'
+        NEXUS_IP  = '34.234.234.170'
+        DEPLOY_IP = '44.197.212.181'
     }
 
     stages {
