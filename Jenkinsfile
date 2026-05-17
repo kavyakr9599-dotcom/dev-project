@@ -45,19 +45,21 @@ pipeline {
             }
         }
         stage('Deploy') {
-            steps {
-                sshagent(credentials:['EC2-ssh']) {
-                    sh '''
-                    scp -o StrictHostKeyChecking=no \
-                        webapp/target/webapp.war \
-                        ubuntu@${deploy_IP}:/tmp/webapp.war
+    steps {
+        sshagent(credentials: ['EC2-ssh']) {
+            sh '''
+            # Copy WAR file to server
+            scp -o StrictHostKeyChecking=no \
+                target/webapp.war \
+                ubuntu@${deploy_IP}:/tmp/webapp.war
 
-                    ssh -o StrictHostKeyChecking=no ubuntu@${deploy_IP} "
-                        sudo cp /tmp/webapp.war /home/ubuntu/tomcat/webapps/webapp.war &&
-                        /home/ubuntu/tomcat/bin/shutdown.sh
-                        /home/ubuntu/tomcat/bin/startup.sh
-                    "
-                    '''
+            # Deploy on remote server
+            ssh -o StrictHostKeyChecking=no ubuntu@${deploy_IP} "
+                sudo cp /tmp/webapp.war /home/ubuntu/tomcat/webapps/webapp.war &&
+                sudo /home/ubuntu/tomcat/bin/shutdown.sh &&
+                sudo /home/ubuntu/tomcat/bin/startup.sh
+            "
+            '''
                 }
             }
         }
