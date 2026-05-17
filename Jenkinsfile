@@ -1,93 +1,71 @@
 pipeline {
     agent any
-
     tools {
-        maven 'Maven-3.9'
-        jdk 'JDK-17'
+        jdk 'jdk21'
+        maven 'maven3'
     }
-
+    parameters {
+      string(name: 'sonar_IP', defaultValue: '52.91.52.149', description: 'IP of sonarqube')
+      string(name: 'nexus_IP', defaultValue: '54.226.31.233', description: 'IP of nexus')
+      string(name: 'deploy_IP', defaultValue:'98.93.165.85', description: 'IP of Deploy Server')  
+    }
     environment {
-        NEXUS_IP  = '34.234.234.170'
-        DEPLOY_IP = '44.197.212.181'
+      SONARQUBE_URL="http://${params.sonar_IP}:9000"
+      SONARQUBE_TOKEN=credentials('Sonar-token')
+      NEXUS_URL="http://${params.nexus_IP}:8081"
     }
-
     stages {
-        stage('Checkout') {
+        stage('Checkout Code') {
             steps {
                 git branch: 'main',
-                    url: 'https://github.com/Chigich/dev-project.git',
-                    credentialsId: 'git-credentials'
+                url: 'https://github.com/kavyakr9599-dotcom/dev-project.git'
             }
         }
-
-        stage('SonarQube Analysis') {
+        stage('Sonarqube Analysis') {
             steps {
-                withSonarQubeEnv('SonarQube') {
-                    sh 'mvn sonar:sonar'
-                }
-            }
-        }
-
-        stage('Quality Gate') {
-            steps {
-                timeout(time: 5, unit: 'MINUTES') {
-                    waitForQualityGate abortPipeline: true
-                }
-            }
-        }
-
-        stage('Build') {
-            steps {
-                sh 'mvn clean package -DskipTests'
-            }
-        }
-
-        stage('Push to Nexus') {
-            steps {
-                nexusArtifactUploader(
-                    nexusVersion:  'nexus3',
-                    protocol:      'http',
-                    nexusUrl:      "${NEXUS_IP}:8081",
-                    groupId:       'com.demo',
-                    version:       '1.0.0',
-                    repository:    'maven-releases',
-                    credentialsId: 'nexus-credentials',
-                    artifacts: [
-                        [
-                            artifactId: 'demo-app',
-                            classifier: '',
-                            file:       'target/demo-app-1.0.0.jar',
-                            type:       'jar'
-                        ]
-                    ]
-                )
-            }
-        }
-
-        stage('Deploy') {
-            steps {
-                sshagent(['ec2-ssh-key']) {
+                dir('webapp') {
                     sh """
-                        scp -o StrictHostKeyChecking=no target/demo-app-1.0.0.jar ubuntu@${DEPLOY_IP}:/home/ubuntu/
-
-                        ssh -o StrictHostKeyChecking=no ubuntu@${DEPLOY_IP} "bash -s" << 'ENDSSH'
-                            pkill -f demo-app-1.0.0.jar || true
-                            sleep 2
-                            nohup java -jar /home/ubuntu/demo-app-1.0.0.jar > /home/ubuntu/app.log 2>&1 &
-                            echo "App started"
-ENDSSH
+                    mvn sonar:sonar \
+                    -Dsonar.projectKey=MavenProject \
+                    -Dsonar.host.url=http://52.91.52.149:9000 \
+                    -Dsonar.login=$SONARQUBE_TOKEN
                     """
                 }
             }
         }
-    }
-
-    post {
-        success {
-            echo 'Pipeline executed successfully!'
+        stage('Build') {
+            steps {
+                dir('webapp') {
+                sh 'mvn clean package -DskipTests'
+                }
+            }
         }
-        failure {
-            echo 'Pipeline failed!'
+        stage('Upload to Nexus') {
+            steps {
+                dir('webapp') {
+                    sh '''
+                    mvn clean deploy -DskipTests \
+                    -DaltDeploymentRepository=nexus-snapshots::default::$NEXUS_URL/repository/maven-releases1/
+                    '''
+                }
+            }
+        }
+        stage('Deploy') {
+            steps {
+                sshagent(credentials:['EC2-ssh']) {
+                    sh '''
+                    scp -o StrictHostKeyChecking=no \
+                        webapp/target/webapp.war \
+                        ubuntu@${deploy_IP}:/tmp/webapp.war
+
+                    ssh -o StrictHostKeyChecking=no ubuntu@${deploy_IP} "
+                        sudo cp /tmp/webapp.war /home/ubuntu/tomcat/webapps/webapp.war &&
+                        /home/ubuntu/tomcat/bin/shutdown.sh
+                        /home/ubuntu/tomcat/bin/startup.sh
+                    "
+                    '''
+                }
+            }
         }
     }
 }
