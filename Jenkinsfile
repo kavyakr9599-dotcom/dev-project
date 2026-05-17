@@ -40,7 +40,7 @@ pipeline {
             steps {
                     sh '''
                   mvn clean deploy -DskipTests \
--DaltDeploymentRepository=maven-releases1::default::http://54.226.31.233:8081/repository/maven-releases1/
+-DaltDeploymentRepository=maven-releases1::http://54.226.31.233:8081/repository/maven-releases1/
                     '''
             }
         }
