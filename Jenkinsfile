@@ -40,7 +40,7 @@ pipeline {
             steps {
                     sh '''
                     mvn clean deploy -DskipTests \
-                    -DaltDeploymentRepository=nexus-snapshots::default::$NEXUS_URL/repository/maven-releases1/
+                    -DaltDeploymentRepository=maven-releases1::default::$NEXUS_URL/repository/maven-releases1/
                     '''
             }
         }
