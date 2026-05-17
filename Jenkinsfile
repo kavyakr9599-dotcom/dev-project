@@ -49,8 +49,8 @@ pipeline {
                 sshagent(credentials:['ec2-ssh']) {
                     sh '''
                     scp -o StrictHostKeyChecking=no \
-                        webapp/target/webapp.war \
-                        ubuntu@${deploy_IP}:/tmp/webapp.war
+target/demo-app-*.jar \
+ubuntu@${deploy_IP}:/tmp/demo-app.jar
 
                     ssh -o StrictHostKeyChecking=no ubuntu@${deploy_IP} "
                         sudo cp /tmp/webapp.war /home/ubuntu/tomcat/webapps/webapp.war &&
