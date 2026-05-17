@@ -44,20 +44,21 @@ pipeline {
                     '''
             }
         }
-           stage('Deploy') {
-            steps {
-                sshagent(credentials:['ec2-ssh']) {
-                    sh '''
-                    scp -o StrictHostKeyChecking=no \
-target/demo-app-*.jar \
-ubuntu@${deploy_IP}:/tmp/demo-app.jar
+          stage('Deploy') {
+    steps {
+        sshagent(credentials: ['ec2-ssh']) {
+            sh """
+                ls -l target/
 
-                    ssh -o StrictHostKeyChecking=no ubuntu@${deploy_IP} "
-                        sudo cp /tmp/webapp.war /home/ubuntu/tomcat/webapps/webapp.war &&
-                        /home/ubuntu/tomcat/bin/shutdown.sh
-                        /home/ubuntu/tomcat/bin/startup.sh
-                    "
-                    '''
+                scp -o StrictHostKeyChecking=no \
+                    target/demo-app-*.jar \
+                    ubuntu@${deploy_IP}:/tmp/demo-app.jar
+
+                ssh -o StrictHostKeyChecking=no ubuntu@${deploy_IP} '
+                    sudo mv /tmp/demo-app.jar /home/ubuntu/app.jar &&
+                    sudo systemctl restart myapp
+                '
+            """
                 }
             }
         }
