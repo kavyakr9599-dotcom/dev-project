@@ -23,31 +23,25 @@ pipeline {
         }
         stage('Sonarqube Analysis') {
             steps {
-                dir('webapp') {
                     sh """
                     mvn sonar:sonar \
                     -Dsonar.projectKey=MavenProject \
                     -Dsonar.host.url=http://52.91.52.149:9000 \
                     -Dsonar.login=$SONARQUBE_TOKEN
                     """
-                }
             }
         }
         stage('Build') {
             steps {
-                dir('webapp') {
                 sh 'mvn clean package -DskipTests'
-                }
             }
         }
         stage('Upload to Nexus') {
             steps {
-                dir('webapp') {
                     sh '''
                     mvn clean deploy -DskipTests \
                     -DaltDeploymentRepository=nexus-snapshots::default::$NEXUS_URL/repository/maven-releases1/
                     '''
-                }
             }
         }
         stage('Deploy') {
